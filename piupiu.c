@@ -30,7 +30,8 @@ void gameover();
 #define OPPONENTDEAD ' '
 #define BULLET '*'
 #define SPACE ' '
-#define CHANCE_OF_ENEMY_SHOOTING 2 // Adjust the probability of enemy shooting
+#define CHANCE_OF_ENEMY_SHOOTING 0.5 // Adjust the probability of enemy shooting
+#define WALL '#'
 
 // Score
 int score = 0;
@@ -55,6 +56,10 @@ char screenBuffer[SCREEN_HEIGHT][SCREEN_WIDTH + 1];
 int enemyBulletX[SCREEN_WIDTH];
 int enemyBulletY[SCREEN_WIDTH];
 int enemyBulletActive[SCREEN_WIDTH];
+// Wall arrays
+int wall1[SCREEN_WIDTH] = {0};
+int wall2[SCREEN_WIDTH] = {0};
+int wall3[SCREEN_WIDTH] = {0};
 
 // Function prototypes
 void gotoxy(int x, int y);
@@ -71,6 +76,9 @@ void readHighscore();
 void writeHighscore();
 void updateEnemyBullets();
 void drawEnemyBullets();
+void clearWall();
+void drawWall();
+void spawnWall(int *wall);
 
 // MAIN
 int main() {
@@ -215,12 +223,11 @@ void startGame() {
     spawnEnemy(opponent2);
     spawnEnemy(opponent3);
     spawnEnemy(opponent4);
+    spawnWall(wall1);
+    spawnWall(wall2);
+    spawnWall(wall3);
 
     while (playerLife > 0) {
-        // Update game
-        updateBullet();
-        updateEnemyBullets();
-
         // Clear only the lines that need to be updated
         clearLines(0, 3);
         clearLines(4, SCREEN_HEIGHT - 5);
@@ -228,43 +235,69 @@ void startGame() {
 
         // Draw game elements
         clearBullet(); // Clear the bullet's previous position
+        clearWall();
         drawEnemies(opponent1, 0);
         drawEnemies(opponent2, 1);
         drawEnemies(opponent3, 2);
         drawEnemies(opponent4, 3);
-        drawPlayer();
+        drawWall();
         drawBullet();
+        drawPlayer();
         drawEnemyBullets();
         drawHUD();
 
         // Print the entire buffer to the console
         printScreenBuffer();
 
+        // Update game
+        updateBullet();
+        updateEnemyBullets();
+
         // Check for collision with enemies and bullets
         for (int i = 0; i < SCREEN_WIDTH; i++) {
-            if (opponent4[i] && bulletX == i && bulletY == SCREEN_HEIGHT - 5) {
+            if (opponent4[i] && bulletX == i && bulletY == SCREEN_HEIGHT - 21) {
                 if (bulletActive) {
                     bulletActive = 0;
                     opponent4[i] = 0;
                     score += OPPONENT_KILL_SCORE34;
                 }
-            } else if (opponent3[i] && bulletX == i && bulletY == SCREEN_HEIGHT - 5) {
+            } else if (opponent3[i] && bulletX == i && bulletY == SCREEN_HEIGHT - 22) {
                 if (bulletActive) {
                     bulletActive = 0;
                     opponent3[i] = 0;
                     score += OPPONENT_KILL_SCORE34;
                 }
-            } else if (opponent2[i] && bulletX == i && bulletY == SCREEN_HEIGHT - 5) {
+            } else if (opponent2[i] && bulletX == i && bulletY == SCREEN_HEIGHT - 23) {
                 if (bulletActive) {
                     bulletActive = 0;
                     opponent2[i] = 0;
                     score += OPPONENT_KILL_SCORE2;
                 }
-            } else if (opponent1[i] && bulletX == i && bulletY == SCREEN_HEIGHT - 5) {
+            } else if (opponent1[i] && bulletX == i && bulletY == SCREEN_HEIGHT - 24) {
                 if (bulletActive) {
                     bulletActive = 0;
                     opponent1[i] = 0;
                     score += OPPONENT_KILL_SCORE1;
+                }
+            }
+        }
+
+        // Check collision wall with player bullet and enemy bullet
+        for (int i = 0; i < SCREEN_WIDTH; i++) {
+            if (wall1[i] && bulletX == i && bulletY == SCREEN_HEIGHT - 7) {
+                if (bulletActive) {
+                    bulletActive = 0;
+                    wall1[i] = 0;
+                }
+            } else if (wall2[i] && bulletX == i && bulletY == SCREEN_HEIGHT - 8) {
+                if (bulletActive) {
+                    bulletActive = 0;
+                    wall2[i] = 0;
+                }
+            } else if (wall3[i] && bulletX == i && bulletY == SCREEN_HEIGHT - 9) {
+                if (bulletActive) {
+                    bulletActive = 0;
+                    wall3[i] = 0;
                 }
             }
         }
@@ -298,14 +331,18 @@ void startGame() {
             }
         }
 
-        // Clear the bullet's previous position
-        clearBullet();
-
-        // Update bullet position
-        updateBullet();
-
-        // Draw the updated bullet
-        drawBullet();
+        // Check if all enemies are defeated
+        int allEnemiesDefeated = 1;
+        for (int i = 0; i < SCREEN_WIDTH; i++) {
+            if (opponent1[i] || opponent2[i] || opponent3[i] || opponent4[i]) {
+                allEnemiesDefeated = 0;
+                break;
+            }
+        }
+        if (allEnemiesDefeated) {
+            gameover();
+            break; // Exit the loop if all enemies are defeated
+        }
 
         Sleep(100);
     }
@@ -379,6 +416,9 @@ void drawEnemies(int *opponent, int y) {
         if (opponent[i]) {
             gotoxy(i, y);
             printf("%c", enemyChar);
+        } else {
+            gotoxy(i, y);
+            printf("%c", SPACE);
         }
     }
 }
@@ -460,6 +500,45 @@ void drawEnemyBullets() {
         if (enemyBulletActive[i]) {
             gotoxy(enemyBulletX[i], enemyBulletY[i]);
             printf("%c", BULLET);
+        }
+    }
+}
+
+// Wall start in screen - 7 to screen - 9
+void spawnWall(int *wall) {
+    memset(wall, 1, SCREEN_WIDTH * sizeof(int));
+}
+
+void clearWall() {
+    for (int i = 0; i < SCREEN_WIDTH; i++) {
+        if (wall1[i]) {
+            gotoxy(i, SCREEN_HEIGHT - 7);
+            printf("%c", SPACE);
+        }
+        if (wall2[i]) {
+            gotoxy(i, SCREEN_HEIGHT - 8);
+            printf("%c", SPACE);
+        }
+        if (wall3[i]) {
+            gotoxy(i, SCREEN_HEIGHT - 9);
+            printf("%c", SPACE);
+        }
+    }
+}
+
+void drawWall() {
+    for (int i = 0; i < SCREEN_WIDTH; i++) {
+        if (wall1[i]) {
+            gotoxy(i, SCREEN_HEIGHT - 7);
+            printf("%c", WALL);
+        }
+        if (wall2[i]) {
+            gotoxy(i, SCREEN_HEIGHT - 8);
+            printf("%c", WALL);
+        }
+        if (wall3[i]) {
+            gotoxy(i, SCREEN_HEIGHT - 9);
+            printf("%c", WALL);
         }
     }
 }
