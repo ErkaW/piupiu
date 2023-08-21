@@ -1,4 +1,4 @@
 # piupiu
 Tugas orang buat game arcade
 
-Need fix = drywall
+Need fix = flickering berat
